@@ -547,6 +547,8 @@ int step(Bot **bots_ptr) {
     return 0;
 }
 
+Color body = {0, 0, 0, 20};
+
 int main(void) {
 hard_restart:
     int seed = time(NULL);
@@ -580,7 +582,7 @@ restart:
     // --- Основной цикл ---
     while (!WindowShouldClose()) {
         if (bots_count <= 0) init(100);
-
+        
         step(&bots);
         ticks++;
 
@@ -588,7 +590,7 @@ restart:
         if (ticks % 10 == 0) {
             BeginDrawing();
                 // рисуем фон мира
-                DrawRectangle(0, 0, WORLD_W, HEIGHT, BLACK);
+                DrawRectangle(0, 0, WORLD_W, HEIGHT, body);
 
                 // рисуем ботов
                 for (size_t i = 0; i < bots_count; i++) {

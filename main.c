@@ -548,7 +548,7 @@ int step(Bot **bots_ptr) {
 }
 
 int main(void) {
-    bool button_press = false;
+hard_restart:
     int seed = time(NULL);
     srand(seed);
     seed = rand();
@@ -604,11 +604,14 @@ restart:
                 DrawText(TextFormat("Ticks: %zu", ticks), WORLD_W + 20, 63, 20, YELLOW);
                 DrawText(TextFormat("Bots: %zu", bots_count), WORLD_W + 20, 93, 20, YELLOW);
                 
-                if (GuiTextBox((Rectangle){WORLD_W + 10, 123, PANEL_W - 70, 30}, buffer, 64, true)) {}
+                if (GuiTextBox((Rectangle){WORLD_W + 10, 123, PANEL_W - 100, 30}, buffer, 64, true)) {}
 
-                if (GuiTextBox((Rectangle){WORLD_W+PANEL_W-60, 123, 30, 30}, ">", 20, false)){
+                if (GuiTextBox((Rectangle){WORLD_W+PANEL_W-80, 123, 30, 30}, "  >  ", 20, false)){
                     seed = atoi(buffer);
                     goto restart;
+                }
+                if (GuiTextBox((Rectangle){WORLD_W+PANEL_W-40, 123, 30, 30}, "  R  ", 20, false)){
+                    goto hard_restart;
                 }
             EndDrawing();
         }

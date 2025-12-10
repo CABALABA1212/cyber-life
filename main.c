@@ -550,6 +550,8 @@ int step(Bot **bots_ptr) {
 int main(void) {
     bool button_press = false;
     int seed = time(NULL);
+    srand(seed);
+    seed = rand();
     char buffer[16];
 restart: 
     sprintf(buffer, "%d", seed);

@@ -1,10 +1,13 @@
+#define RAYGUI_IMPLEMENTATION
 #include "raylib.h"
+#include "raygui.h"
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
-
+#include <uchar.h>
 #define RAND_LIST_SIZE 16384
 float rand_list[RAND_LIST_SIZE];
 int rand_index = 0;
@@ -21,13 +24,18 @@ float get_rand() {
     return r;
 }
 
+
 /* Параметры */
+#define SEED 0
 // Графика
 #define WIDTH 1280
+#define WIDTH_board 0.2
 #define HEIGHT 720
 #define SIZE 10
 #define WIDTH_MAP WIDTH / SIZE
 #define HEIGHT_MAP HEIGHT / SIZE
+#define PANEL_WIDTH (WIDTH * 0.2f)
+#define WORLD_WIDTH (WIDTH - PANEL_WIDTH)
 // Энергия
 #define PHOTOSYNTHESIS_ENERGY 20
 #define MIN_DIVISION_ENERGY 75
@@ -50,11 +58,10 @@ typedef enum {
     RANDOMISH
 } NeuronType;
 typedef struct {
-    // Размеры храним для совместимости с логикой, но они константны
     int input_size;
     int hidden_size;
     int output_size;
-    // Статические массивы вместо указателей
+    
     float W1[INPUT_SIZE * HIDDEN_SIZE];
     float W2[HIDDEN_SIZE * OUTPUT_SIZE];
    
@@ -406,7 +413,6 @@ void init(int count) {
 }
 int step(Bot **bots_ptr) {
     Bot *bots_arr = *bots_ptr; // локальная копия для удобства
-    // Строим грид для быстрого поиска
     memset(grid, -1, sizeof(grid));
     for (size_t i = 0; i < bots_count; i++) {
         Pos p = bots_arr[i].pos;
@@ -540,33 +546,77 @@ int step(Bot **bots_ptr) {
     }
     return 0;
 }
+
 int main(void) {
-    srand((unsigned int)time(NULL));
+    bool button_press = false;
+    int seed = time(NULL);
+    char buffer[16];
+restart: 
+    sprintf(buffer, "%d", seed);
+    ticks = 0;
+    bots_count = 0;
+    bots_capacity = 0;   
+ 
+    srand(ticks + seed);
     init_rand_list();
-    InitWindow(WIDTH, HEIGHT, "Bots Simulation");
+
+    const int PANEL_W = WIDTH * WIDTH_board;
+    const int WORLD_W = WIDTH;
+
+    InitWindow(WIDTH + PANEL_W, HEIGHT, "Bots Simulation");
     SetTargetFPS(60);
-    // Инициализация ботов
+    ClearBackground(LIGHTGRAY);
+
+    // --- Панель ---
+    RenderTexture2D panel = LoadRenderTexture(PANEL_W, HEIGHT);
+    BeginTextureMode(panel);
+        ClearBackground((Color){40, 40, 40, 255});
+        DrawText("Simulation", 20, 20, 24, RAYWHITE);
+        DrawRectangle(10, 50, PANEL_W - 20, 3, LIGHTGRAY);
+    EndTextureMode();
+
+    // --- Основной цикл ---
     while (!WindowShouldClose()) {
-        if (bots_count <= 0)
-            init(100);
-           
-        // Логика ботов
+        if (bots_count <= 0) init(100);
+
         step(&bots);
         ticks++;
-       
-        // Рисуем только каждый 10-й тик (как и было)
+
+        // Рисуем только каждый 10-й тик (как у тебя было)
         if (ticks % 10 == 0) {
             BeginDrawing();
-            ClearBackground(BLACK);
-            // Рисуем ботов
-            for (size_t i = 0; i < bots_count; i++) {
-                Bot *b = &bots[i];
-                DrawRectangle(b->pos.x * SIZE, b->pos.y * SIZE, SIZE, SIZE, b->color);
-            }
+                // рисуем фон мира
+                DrawRectangle(0, 0, WORLD_W, HEIGHT, BLACK);
+
+                // рисуем ботов
+                for (size_t i = 0; i < bots_count; i++) {
+                    Bot *b = &bots[i];
+                    DrawRectangle(b->pos.x * SIZE, b->pos.y * SIZE, SIZE, SIZE, b->color);
+                }
+
+                // накладываем панель (статичную)
+                DrawTextureRec(panel.texture,
+                               (Rectangle){0, 0, panel.texture.width, -panel.texture.height},
+                               (Vector2){WORLD_W, 0},
+                               WHITE);
+
+                // поверх панели можно обновлять только текст
+                DrawText(TextFormat("Ticks: %zu", ticks), WORLD_W + 20, 63, 20, YELLOW);
+                DrawText(TextFormat("Bots: %zu", bots_count), WORLD_W + 20, 93, 20, YELLOW);
+                
+                /* В разработке
+                if (GuiTextBox((Rectangle){WORLD_W + 10, 123, PANEL_W - 70, 30}, buffer, 64, true)) {}
+
+                if (GuiTextBox((Rectangle){WORLD_W + 90, 123, 30, 30}, ">", 20, false)){
+                    seed = atoi(buffer);
+                    goto restart;
+                }
+                */
             EndDrawing();
         }
     }
-    // Освобождаем память
+
+    UnloadRenderTexture(panel);
     free(bots);
     CloseWindow();
     return 0;
